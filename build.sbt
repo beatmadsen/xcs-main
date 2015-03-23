@@ -17,3 +17,4 @@ libraryDependencies ++= Seq(
   "junit"                   % "junit-dep"       % "4.10"   % "test",
   "com.novocode"            % "junit-interface" % "0.10"   % "test"
 )
+
