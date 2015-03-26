@@ -2,7 +2,7 @@ package com.madsen.xcs.main
 
 import java.nio.ByteBuffer
 
-import com.madsen.xsc.interop.{Action, ParameterDto, Predicate, PredicateStore}
+import com.madsen.xsc.interop._
 
 import scala.collection.JavaConversions
 
@@ -11,7 +11,21 @@ class Lada {
   val action: Action = null
 }
 
+
+trait DoNotKnowYet {
+
+  abstract val predicateStore: PredicateStore
+  abstract val actionStore: ActionStore
+
+  // TODO: Figure this out.
+  def doSomething(gene: Gene): Action
+}
+
+case class Gene(id: Long, parameterDtoWrapper: ParameterDtoWrapper)
+
+
 object Gene {
+
   val GeneLength = 4098
   val SizeOfInt = 8
   val SizeOfFloat = 8
@@ -22,14 +36,20 @@ object Gene {
     0 to 7 map { bit => ((byte >> bit) & 1) == 1 }
 
 
-  /*
-  8 * 255 = 2040
-  Key: header name (size in bytes)
-  +------------------------------------------------------------------------------------------+
-  |id(8)|intCount(1)|doubleCount(1)|intParams(0-2040)|doubleParams(0-2040)|boolParams(8-4088)| TOTAL: 4098 bytes
-  +------------------------------------------------------------------------------------------+
+  /**
+
+  Take sequence of bytes and parse out a gene. Layout of incoming bytes:
+
+  Key: <code>header name (size in bytes)</code>
+
+  <code>
+    +------------------------------------------------------------------------------------------+
+    |id(8)|intCount(1)|doubleCount(1)|intParams(0-2040)|doubleParams(0-2040)|boolParams(8-4088)| TOTAL: 4098 bytes
+    +------------------------------------------------------------------------------------------+
+  </code>
+
   */
-  def process(bytes: Seq[Byte]): (Long, ParameterDtoWrapper) = {
+  def apply(bytes: Seq[Byte]): Gene = {
 
     require(Option(bytes).isDefined)
     require(bytes.size == Gene.GeneLength)
@@ -48,7 +68,7 @@ object Gene {
     buffer.get(booleansAsBytes)
     val boolParams = booleansAsBytes.toSeq.flatMap(byteToBooleans)
 
-    (id, new ParameterDtoWrapper(intParams, floatParams, boolParams))
+    apply(id, new ParameterDtoWrapper(intParams, floatParams, boolParams))
   }
 
 
