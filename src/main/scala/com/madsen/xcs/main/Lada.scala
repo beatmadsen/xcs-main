@@ -33,6 +33,21 @@ case class Chromosome(predicateGene: Gene, actionGene: Gene) {
 }
 
 
+object Chromosome {
+
+  val ChromosomeLength = 2 * Gene.GeneLength
+
+
+  def apply(bytes: Seq[Byte]): Chromosome = {
+    require(bytes.size == ChromosomeLength)
+
+    val (predicateBytes, actionBytes) = bytes.splitAt(Gene.GeneLength)
+
+    apply(Gene(predicateBytes), Gene(actionBytes))
+  }
+}
+
+
 case class Gene(id: Long, ints: Seq[Long], floats: Seq[Double], booleans: Seq[Boolean]) {
 
   def parameters: ParameterDto = {
@@ -54,8 +69,7 @@ object Gene {
   val SizeOfHeaders = SizeOfInt + 1 + 1
 
 
-  def byteToBooleans(byte: Byte): Seq[Boolean] =
-    0 to 7 map { bit => ((byte >> bit) & 1) == 1 }
+  def byteToBooleans(byte: Byte): Seq[Boolean] = 0 to 7 map { bit => ((byte >> bit) & 1) == 1 }
 
 
   /**
