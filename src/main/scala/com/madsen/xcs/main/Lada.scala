@@ -11,18 +11,40 @@ class Lada {
   val action: Action = null
 }
 
+case class Chromosome(predicateGene: Gene, actionGene: Gene) {
 
-trait DoNotKnowYet {
+  private def findPredicate(predicateStore: PredicateStore): Predicate = {
+    predicateStore.lookup(predicateGene.id)
+  }
 
-  abstract val predicateStore: PredicateStore
-  abstract val actionStore: ActionStore
 
-  // TODO: Figure this out.
-  def doSomething(gene: Gene): Action
+  private def findAction(actionStore: ActionStore): Action = {
+    actionStore.lookup(actionGene.id)
+  }
+
+
+  def executeOnMatch(predicateStore: PredicateStore, actionStore: ActionStore) = {
+    val isMatch = findPredicate(predicateStore).isMatch(predicateGene.parameters)
+
+    if (isMatch) {
+      findAction(actionStore).execute(actionGene.parameters) // TODO: Measure delta utility from action how?
+    }
+  }
 }
 
-case class Gene(id: Long, parameterDtoWrapper: ParameterDtoWrapper)
 
+case class Gene(id: Long, ints: Seq[Long], floats: Seq[Double], booleans: Seq[Boolean]) {
+
+  def parameters: ParameterDto = {
+    import JavaConversions.seqAsJavaList
+
+    val intParams = seqAsJavaList(ints map long2Long)
+    val floatParams = seqAsJavaList(floats map double2Double)
+    val boolParams = seqAsJavaList(booleans map boolean2Boolean)
+
+    new ParameterDto(intParams, floatParams, boolParams)
+  }
+}
 
 object Gene {
 
@@ -48,7 +70,7 @@ object Gene {
     +------------------------------------------------------------------------------------------+
   </code>
 
-  */
+    */
   def apply(bytes: Seq[Byte]): Gene = {
 
     require(Option(bytes).isDefined)
@@ -68,7 +90,7 @@ object Gene {
     buffer.get(booleansAsBytes)
     val boolParams = booleansAsBytes.toSeq.flatMap(byteToBooleans)
 
-    apply(id, new ParameterDtoWrapper(intParams, floatParams, boolParams))
+    apply(id, intParams, floatParams, boolParams)
   }
 
 
@@ -88,16 +110,6 @@ case class StrictPredicateStore(map: Map[Long, Predicate]) extends MapBasedPredi
 
 
 case class ParameterDtoWrapper(intParams: Seq[Long], floatParams: Seq[Double], boolParams: Seq[Boolean]) {
-
-  def convert: ParameterDto = {
-    import JavaConversions.seqAsJavaList
-
-    val ints = seqAsJavaList(intParams map long2Long)
-    val floats = seqAsJavaList(floatParams map double2Double)
-    val booleans = seqAsJavaList(boolParams map boolean2Boolean)
-
-    new ParameterDto(ints, floats, booleans)
-  }
 }
 
 
