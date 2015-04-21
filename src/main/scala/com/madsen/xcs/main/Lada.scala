@@ -3,35 +3,52 @@ package com.madsen.xcs.main
 import java.nio.ByteBuffer
 
 import com.madsen.xsc.interop._
+import com.madsen.xsc.interop.action.Action
+import com.madsen.xsc.interop.actuator.ActuatorStore
+import com.madsen.xsc.interop.predicate._
+import com.madsen.xsc.interop.sensor.SensorStore
 
-import scala.collection.JavaConversions
 
-class Lada {
-
-  val action: Action = null
+trait ActionStore {
+  def lookup(l: Long): Action
 }
 
-case class Chromosome(predicateGene: Gene, actionGene: Gene) {
 
-  private def findPredicate(predicateStore: PredicateStore): Predicate = {
-    predicateStore.lookup(predicateGene.id)
+trait PredicateStore {
+  def lookup(l: Long): Predicate
+}
+
+
+trait Execution {
+  
+  val predicateStore: PredicateStore
+  val actionStore: ActionStore
+  val actuatorStore: ActuatorStore
+  val sensorStore: SensorStore
+
+  private def findPredicate(id: Long): Predicate = {
+    predicateStore.lookup(id)
   }
 
 
-  private def findAction(actionStore: ActionStore): Action = {
-    actionStore.lookup(actionGene.id)
+  private def findAction(id: Long): Action = {
+    actionStore.lookup(id)
   }
 
 
-  def executeOnMatch(predicateStore: PredicateStore, actionStore: ActionStore) = {
-    val isMatch = findPredicate(predicateStore).isMatch(predicateGene.parameters)
+  def executeOnMatch(chromosome: Chromosome): Unit = {
+    
+    val Chromosome(predicateGene, actionGene) = chromosome
+    
+    val isMatch = findPredicate(predicateGene.id).isMatch(predicateGene.parameters, sensorStore)
 
     if (isMatch) {
-      findAction(actionStore).execute(actionGene.parameters) // TODO: Measure delta utility from action how?
+      findAction(actionGene.id).execute(actionGene.parameters, actuatorStore)
     }
   }
 }
 
+case class Chromosome(predicateGene: Gene, actionGene: Gene) 
 
 object Chromosome {
 
@@ -47,18 +64,11 @@ object Chromosome {
   }
 }
 
-
 case class Gene(id: Long, ints: Seq[Long], floats: Seq[Double], booleans: Seq[Boolean]) {
 
-  def parameters: ParameterDto = {
-    import JavaConversions.seqAsJavaList
+  import com.madsen.util.JavaConversions._
 
-    val intParams = seqAsJavaList(ints map long2Long)
-    val floatParams = seqAsJavaList(floats map double2Double)
-    val boolParams = seqAsJavaList(booleans map boolean2Boolean)
-
-    new ParameterDto(intParams, floatParams, boolParams)
-  }
+  def parameters: ParameterDto = new ParameterDto(ints, floats, booleans)
 }
 
 object Gene {
@@ -116,29 +126,5 @@ object Gene {
   }
 }
 
-case class StrictPredicateStore(map: Map[Long, Predicate]) extends MapBasedPredicateStore {
-  override val defaultPredicate = new Predicate {
-    override def isMatch(parameterDto: ParameterDto): Boolean = false
-  }
-}
-
-
-case class ParameterDtoWrapper(intParams: Seq[Long], floatParams: Seq[Double], boolParams: Seq[Boolean]) {
-}
-
-
-case class LenientPredicateStore(map: Map[Long, Predicate]) extends MapBasedPredicateStore {
-  override val defaultPredicate = new Predicate {
-    override def isMatch(parameterDto: ParameterDto): Boolean = true
-  }
-}
-
-
-trait MapBasedPredicateStore extends PredicateStore {
-  abstract val map: Map[Long, Predicate]
-  abstract val defaultPredicate: Predicate
-
-  override def lookup(predicateId: Long): Predicate = map.getOrElse(predicateId, defaultPredicate)
-}
 
 
