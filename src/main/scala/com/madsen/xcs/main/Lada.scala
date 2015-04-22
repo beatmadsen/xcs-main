@@ -8,6 +8,33 @@ import com.madsen.xsc.interop.actuator.ActuatorStore
 import com.madsen.xsc.interop.predicate._
 import com.madsen.xsc.interop.sensor.SensorStore
 
+trait BaseStore[T] {
+  def lookup(l: Long): T
+}
+
+trait SeqBasedStore[T] extends BaseStore[T] {
+  protected val seq: Seq[T]
+
+  protected def size: Long = seq.size
+
+  def lookup(l: Long): T = seq.apply(l.toInt)
+}
+
+trait ModStore[T] extends BaseStore[T] {
+
+  protected def size: Long
+
+  protected def doLookup(l: Long): T
+
+  override def lookup(l: Long): T = doLookup(l % size) // TODO: This actually makes no sense. There may be gaps in ids in map? Or not???
+}
+
+trait SeqModStore[T] extends SeqBasedStore[T] with ModStore[T] {
+  protected def doLookup(l: Long): T = super[SeqBasedStore].lookup(l)
+}
+
+
+case class SimpleSeqModStore[T](seq: Seq[T]) extends SeqModStore[T]
 
 trait ActionStore {
   def lookup(l: Long): Action
@@ -20,26 +47,22 @@ trait PredicateStore {
 
 
 trait Execution {
-  
+
   val predicateStore: PredicateStore
   val actionStore: ActionStore
   val actuatorStore: ActuatorStore
   val sensorStore: SensorStore
 
-  private def findPredicate(id: Long): Predicate = {
-    predicateStore.lookup(id)
-  }
+  private def findPredicate(id: Long): Predicate = predicateStore.lookup(id)
 
 
-  private def findAction(id: Long): Action = {
-    actionStore.lookup(id)
-  }
+  private def findAction(id: Long): Action = actionStore.lookup(id)
 
 
   def executeOnMatch(chromosome: Chromosome): Unit = {
-    
+
     val Chromosome(predicateGene, actionGene) = chromosome
-    
+
     val isMatch = findPredicate(predicateGene.id).isMatch(predicateGene.parameters, sensorStore)
 
     if (isMatch) {
@@ -48,7 +71,7 @@ trait Execution {
   }
 }
 
-case class Chromosome(predicateGene: Gene, actionGene: Gene) 
+case class Chromosome(predicateGene: Gene, actionGene: Gene)
 
 object Chromosome {
 
