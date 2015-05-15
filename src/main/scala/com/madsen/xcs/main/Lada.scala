@@ -1,21 +1,23 @@
 package com.madsen.xcs.main
 
 import java.nio.ByteBuffer
-import java.util
 
+import com.madsen.xcs.core.actuator.CompositeActuatorStore
 import com.madsen.xsc.interop._
 import com.madsen.xsc.interop.action.Action
-import com.madsen.xsc.interop.actuator.{Actuator => InteropActuator, ActuatorStore}
+import com.madsen.xsc.interop.actuator.{Actuator => InteropActuator}
 import com.madsen.xsc.interop.predicate._
 import com.madsen.xsc.interop.sensor.SensorStore
 
 
 trait ActionStore {
+
   def lookup(l: Long): Action
 }
 
 
 trait PredicateStore {
+
   def lookup(l: Long): Predicate
 }
 
@@ -25,8 +27,7 @@ trait Execution {
   protected val predicateStore: PredicateStore
   protected val actionStore: ActionStore
 
-  // TODO: the actuator store should return composite actuators: one that acts on reality, and one that acts on our model
-  protected val actuatorStore: ActuatorStore
+  protected val actuatorStore: CompositeActuatorStore
   protected val sensorStore: SensorStore
 
   private def findPredicate(id: Long): Predicate = predicateStore.lookup(id)
@@ -47,40 +48,9 @@ trait Execution {
   }
 }
 
-trait Actuator extends InteropActuator {
-
-  override def engage(map: util.Map[String, AnyRef]): Unit = {
-
-    import scala.collection.JavaConversions._
-
-    val convertedMap: Map[String, AnyRef] = map.toMap
-
-    engage(convertedMap)
-  }
-
-
-  protected def engage(map: Map[String, AnyRef]): Unit
-}
-
-
-trait ModelActuator extends Actuator
-
-trait EnvironmentActuator extends Actuator
-
-trait CompositeActuator extends Actuator {
-
-  protected val modelActuator: ModelActuator
-  protected val environmentActuator: EnvironmentActuator
-
-  override protected def engage(map: Map[String, AnyRef]): Unit = {
-
-    modelActuator.engage(map)
-    environmentActuator.engage(map)
-  }
-}
-
 
 case class Chromosome(predicateGene: Gene, actionGene: Gene)
+
 
 object Chromosome {
 
@@ -88,6 +58,7 @@ object Chromosome {
 
 
   def apply(bytes: Seq[Byte]): Chromosome = {
+
     require(bytes.size == ChromosomeLength)
 
     val (predicateBytes, actionBytes) = bytes.splitAt(Gene.GeneLength)
@@ -96,12 +67,14 @@ object Chromosome {
   }
 }
 
+
 case class Gene(id: Long, ints: Seq[Long], floats: Seq[Double], booleans: Seq[Boolean]) {
 
   import com.madsen.util.JavaConversions._
 
   def parameters: ParameterDto = new ParameterDto(ints, floats, booleans)
 }
+
 
 object Gene {
 
@@ -151,6 +124,7 @@ object Gene {
 
 
   private def booleanBytesCount(intCount: Int, numFloats: Int): Int = {
+
     GeneLength -
       SizeOfHeaders -
       intCount * SizeOfInt -
