@@ -1,10 +1,11 @@
 package com.madsen.xcs.main
 
 import java.nio.ByteBuffer
+import java.util
 
 import com.madsen.xsc.interop._
 import com.madsen.xsc.interop.action.Action
-import com.madsen.xsc.interop.actuator.ActuatorStore
+import com.madsen.xsc.interop.actuator.{Actuator => InteropActuator, ActuatorStore}
 import com.madsen.xsc.interop.predicate._
 import com.madsen.xsc.interop.sensor.SensorStore
 
@@ -21,10 +22,12 @@ trait PredicateStore {
 
 trait Execution {
 
-  val predicateStore: PredicateStore
-  val actionStore: ActionStore
-  val actuatorStore: ActuatorStore
-  val sensorStore: SensorStore
+  protected val predicateStore: PredicateStore
+  protected val actionStore: ActionStore
+
+  // TODO: the actuator store should return composite actuators: one that acts on reality, and one that acts on our model
+  protected val actuatorStore: ActuatorStore
+  protected val sensorStore: SensorStore
 
   private def findPredicate(id: Long): Predicate = predicateStore.lookup(id)
 
@@ -43,6 +46,39 @@ trait Execution {
     }
   }
 }
+
+trait Actuator extends InteropActuator {
+
+  override def engage(map: util.Map[String, AnyRef]): Unit = {
+
+    import scala.collection.JavaConversions._
+
+    val convertedMap: Map[String, AnyRef] = map.toMap
+
+    engage(convertedMap)
+  }
+
+
+  protected def engage(map: Map[String, AnyRef]): Unit
+}
+
+
+trait ModelActuator extends Actuator
+
+trait EnvironmentActuator extends Actuator
+
+trait CompositeActuator extends Actuator {
+
+  protected val modelActuator: ModelActuator
+  protected val environmentActuator: EnvironmentActuator
+
+  override protected def engage(map: Map[String, AnyRef]): Unit = {
+
+    modelActuator.engage(map)
+    environmentActuator.engage(map)
+  }
+}
+
 
 case class Chromosome(predicateGene: Gene, actionGene: Gene)
 
