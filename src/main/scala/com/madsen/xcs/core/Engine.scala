@@ -1,4 +1,4 @@
-package com.madsen.xcs.core.engine
+package com.madsen.xcs.core
 
 import com.madsen.xcs.core.action.ActionStore
 import com.madsen.xcs.core.actuator.CompositeActuatorStore
@@ -11,7 +11,7 @@ import com.madsen.xsc.interop.sensor.SensorStore
 /**
  * Created by erikmadsen2 on 15/05/15.
  */
-trait Execution {
+trait Engine {
 
   protected val predicateStore: PredicateStore
   protected val actionStore: ActionStore
