@@ -1,5 +1,7 @@
 package com.madsen.xcs.core
 
+import java.util.concurrent.atomic.AtomicBoolean
+
 import com.madsen.xcs.core.action.ActionStore
 import com.madsen.xcs.core.actuator.CompositeActuatorStore
 import com.madsen.xcs.core.genetic.Chromosome
@@ -18,10 +20,10 @@ trait Engine {
   protected val actuatorStore: CompositeActuatorStore
   protected val sensorStore: SensorStore
 
-  private def findPredicate(id: Long): Predicate = predicateStore.lookup(id)
+  private def findPredicate(id: Long): Predicate = predicateStore.lookup(id).get
 
 
-  private def findAction(id: Long): Action = actionStore.lookup(id)
+  private def findAction(id: Long): Action = actionStore.lookup(id).get
 
 
   def executeOnMatch(chromosome: Chromosome): Unit = {
@@ -34,4 +36,31 @@ trait Engine {
       findAction(actionGene.id).execute(actionGene.parameters, actuatorStore)
     }
   }
+}
+
+
+trait Sumo {
+
+  protected val engine: Engine
+
+  private val running: AtomicBoolean = new AtomicBoolean(true)
+
+  def run(): Unit = {
+
+    while (running.get()) {
+      /*
+      (1) Sensor values are read.
+      (2) All active chromosomes are in a pool. Predicates react to sensors.
+      (3) All predicates matching sensor values are found
+      (4) The highest fitness chromosome with a matching predicate is chosen
+      (5) The chromosome's action is executed
+      (6) Reinforcement system's feedback value for action is obtained
+      (7) Update fitness
+      (8) Generate new rules
+       */
+
+    }
+  }
+
+  def stop() = running.set(false)
 }

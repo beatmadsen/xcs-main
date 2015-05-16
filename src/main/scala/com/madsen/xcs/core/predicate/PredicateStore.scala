@@ -7,5 +7,5 @@ import com.madsen.xsc.interop.predicate.Predicate
  */
 trait PredicateStore {
 
-  def lookup(l: Long): Predicate
+  def lookup(l: Long): Option[Predicate]
 }

@@ -7,5 +7,5 @@ import com.madsen.xsc.interop.action.Action
  */
 trait ActionStore {
 
-  def lookup(l: Long): Action
+  def lookup(l: Long): Option[Action]
 }
