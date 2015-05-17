@@ -1,70 +1,76 @@
 package com.madsen.xcs.core.genetic
 
 import com.madsen.xcs.core.action.ActionStore
+import com.madsen.xcs.core.genetic.Gene._
 import com.madsen.xcs.core.predicate.PredicateStore
+import com.madsen.xcs.core.sensor.SensorValueStore
 import com.madsen.xsc.interop.action.Action
 import com.madsen.xsc.interop.predicate.Predicate
-import com.madsen.xsc.interop.sensor.SensorStore
+import com.madsen.xsc.interop.sensor.{SensorValueStore ⇒ InteropSensorValueStore}
+
+import scala.collection.mutable.{Map ⇒ MutaMap}
+import scala.concurrent.Future
 
 /**
  * Created by erikmadsen2 on 15/05/15.
  */
 object Chromosome {
 
-  val ChromosomeLength = 2 * Gene.GeneLength
+  val ChromosomeLength = 2 * GeneLength
 
 
   def apply(bytes: Seq[Byte]): Chromosome = {
 
     require(bytes.size == ChromosomeLength)
 
-    val (predicateBytes, actionBytes) = bytes.splitAt(Gene.GeneLength)
+    val (predicateBytes, actionBytes) = bytes.splitAt(GeneLength)
 
-    apply(Gene(predicateBytes), Gene(actionBytes))
+    apply(Gene(predicateBytes), Gene(actionBytes), 0.0)
   }
 }
 
 
-case class Chromosome(predicateGene: Gene, actionGene: Gene)
+case class Chromosome(predicateGene: Gene, actionGene: Gene, fitness: Double)
 
 
 trait ChromosomePool {
 
 
-  protected val chromosomes: Seq[Chromosome]
+  protected val chromosomes: Set[Chromosome]
 
-  protected val sensorStore: SensorStore
+  protected val sensorStore: SensorValueStore
   protected val actionStore: ActionStore
   protected val predicateStore: PredicateStore
 
-  def x = {
 
-    chromosomes
-      .map { chromosome => chromosome.predicateGene }
-      .map { gene => (gene.id, gene.parameters) }
-      .flatMap { case (id, parameters) => findPredicate(id) map (p => (p, parameters)) }
-      .filter { case (predicate, parameters) => predicate.isMatch(parameters, sensorStore)
-    }
+  def bestAction[T <: AnyRef](sensorId: String, value: T): Future[Option[Action]] = {
 
-    ???
+    sensorStore.recordValue(sensorId, value)
+
+    val futures = chromosomes map checkPredicate
+
+    Future.sequence(futures)
+      .map(_.flatten)
+      .map { cs ⇒ cs.maxBy(_.fitness) }
+      .flatMap { chromosome ⇒ findAction(chromosome.actionGene.id) }
   }
 
-  private def y(chromosome: Chromosome): Option[Action] = {
+
+  private def checkPredicate(chromosome: Chromosome): Future[Option[Chromosome]] = {
 
     val gene = chromosome.predicateGene
 
-    findPredicate(gene.id) flatMap { predicate =>
-      val isMatch = predicate.isMatch(gene.parameters, sensorStore)
-
-      if (isMatch) {
-        findAction(chromosome.actionGene.id)
-      } else None
+    findPredicate(gene.id) map { maybe ⇒
+      maybe flatMap { predicate ⇒
+        if (predicate.isMatch(gene.parameters, sensorStore)) Some(chromosome)
+        else None
+      }
     }
   }
 
 
-  private def findPredicate(id: Long): Option[Predicate] = predicateStore.lookup(id)
+  private def findPredicate(id: Long): Future[Option[Predicate]] = predicateStore.lookup(id)
 
 
-  private def findAction(id: Long): Option[Action] = actionStore.lookup(id)
+  private def findAction(id: Long): Future[Option[Action]] = actionStore.lookup(id)
 }
