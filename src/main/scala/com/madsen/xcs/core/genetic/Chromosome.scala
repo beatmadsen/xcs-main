@@ -9,7 +9,7 @@ import com.madsen.xsc.interop.predicate.Predicate
 import com.madsen.xsc.interop.sensor.{SensorValueStore ⇒ InteropSensorValueStore}
 
 import scala.collection.mutable.{Map ⇒ MutaMap}
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * Created by erikmadsen2 on 15/05/15.
@@ -35,6 +35,8 @@ case class Chromosome(predicateGene: Gene, actionGene: Gene, fitness: Double)
 
 trait ChromosomePool {
 
+
+  implicit val ex: ExecutionContext
 
   protected val chromosomes: Set[Chromosome]
 

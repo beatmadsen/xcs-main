@@ -2,7 +2,7 @@ package com.madsen.xcs.core.actuator
 
 import java.util
 
-import com.madsen.xsc.interop.actuator.{Actuator => InteropActuator}
+import com.madsen.xsc.interop.actuator.{Actuator ⇒ InteropActuator}
 
 
 /**
@@ -16,9 +16,9 @@ trait Actuator extends InteropActuator {
 
     val convertedMap: Map[String, AnyRef] = map.toMap
 
-    engage(convertedMap)
+    lama(convertedMap)
   }
 
 
-  protected def engage(map: Map[String, AnyRef]): Unit
+  def lama(map: Map[String, AnyRef]): Unit
 }

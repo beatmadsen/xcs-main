@@ -39,4 +39,4 @@ trait MapBasedSensorValueStore extends SensorValueStore {
 }
 
 
-case class SimpleSensorValueStore(map: MutaMap) extends MapBasedSensorValueStore
+case class SimpleSensorValueStore(map: MutaMap[String, AnyRef]) extends MapBasedSensorValueStore
