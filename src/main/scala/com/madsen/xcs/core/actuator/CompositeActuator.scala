@@ -8,10 +8,10 @@ trait CompositeActuator extends Actuator {
   protected val modelActuator: ModelActuator
   protected val environmentActuator: EnvironmentActuator
 
-  override def lama(map: Map[String, AnyRef]): Unit = {
+  override protected[actuator] def doEngage(map: Map[String, AnyRef]): Unit = {
 
-    modelActuator.lama(map)
-    environmentActuator.lama(map)
+    modelActuator.doEngage(map)
+    environmentActuator.doEngage(map)
 
     ()
   }

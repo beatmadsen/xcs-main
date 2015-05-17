@@ -16,9 +16,9 @@ trait Actuator extends InteropActuator {
 
     val convertedMap: Map[String, AnyRef] = map.toMap
 
-    lama(convertedMap)
+    doEngage(convertedMap)
   }
 
 
-  def lama(map: Map[String, AnyRef]): Unit
+  protected[actuator] def doEngage(map: Map[String, AnyRef]): Unit
 }
